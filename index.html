@@ -4,11 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Naiteek Personal Cloud</title>
-    <!-- Tailwind CSS for Premium UI -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- Supabase JS Library -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { background-color: #0d1117; color: #c9d1d9; font-family: system-ui, -apple-system, sans-serif; }
@@ -17,7 +13,6 @@
 </head>
 <body class="min-h-screen flex flex-col items-center p-4 sm:p-8">
 
-    <!-- LOGIN WALL -->
     <div id="login-wall" class="fixed inset-0 bg-[#0d1117] flex items-center justify-center z-50">
         <div class="glass p-8 rounded-2xl max-w-sm w-full text-center shadow-2xl">
             <i class="fa-solid fa-cloud-lock text-5xl text-blue-500 mb-4"></i>
@@ -29,9 +24,7 @@
         </div>
     </div>
 
-    <!-- MAIN DASHBOARD -->
     <div class="max-w-4xl w-full hidden" id="dashboard">
-        <!-- Header -->
         <header class="flex justify-between items-center mb-8 pb-4 border-b border-[#30363d]">
             <div class="flex items-center gap-3">
                 <i class="fa-solid fa-cloud text-3xl text-blue-500"></i>
@@ -40,52 +33,31 @@
             <button onclick="logout()" class="text-gray-400 hover:text-red-500 transition"><i class="fa-solid fa-right-from-bracket text-xl"></i></button>
         </header>
 
-        <!-- Upload Box -->
         <div class="glass p-6 rounded-2xl mb-8 text-center border-dashed border-2 border-blue-500/30 hover:border-blue-500/60 transition relative">
             <input type="file" id="file-input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" multiple onchange="uploadFiles()">
             <i class="fa-solid fa-cloud-arrow-up text-4xl text-blue-400 mb-3"></i>
             <p class="text-white font-medium">Click ya Drag karke files upload karein</p>
-            <p class="text-xs text-gray-400 mt-1">Photos, Videos, PDFs, Documents sab allowed hai</p>
-            <!-- Progress Bar -->
-            <div id="progress-container" class="mt-4 hidden">
-                <div class="w-full bg-[#161b22] rounded-full h-2">
-                    <div id="progress-bar" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
-                </div>
-                <p id="progress-text" class="text-xs text-gray-400 mt-1">Uploading: 0%</p>
-            </div>
+            <p class="text-xs text-gray-400 mt-1">Demo Mode: Interface check karne ke liye</p>
         </div>
 
-        <!-- File List Section -->
         <div class="glass rounded-2xl p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fa-solid fa-folder-open text-yellow-500"></i> Aapki Files</h3>
-                <button onclick="fetchFiles()" class="text-sm text-blue-400 hover:underline"><i class="fa-solid fa-rotate"></i> Refresh</button>
-            </div>
-            <div id="file-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <!-- Files automatically append here -->
-            </div>
-            <div id="no-files" class="text-center py-12 text-gray-500 hidden">
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2"><i class="fa-solid fa-folder-open text-yellow-500"></i> Aapki Files</h3>
+            <div id="file-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+            <div id="no-files" class="text-center py-12 text-gray-500">
                 <i class="fa-regular fa-folder-open text-4xl mb-2"></i>
-                <p>Koi file nahi hai bhai. Upload karo!</p>
+                <p>Dashboard khul gaya bhai! Supabase key sahi karte hi files dikhengi.</p>
             </div>
         </div>
     </div>
 
     <script>
-        // CONFIGURATION (Supabase Connection)
-        const SUPABASE_URL = "https://dtcffohlfmhgyputihtj.supabase.co"; 
-        const SUPABASE_KEY = "sb_publishable_Kl2H_9_G0q2m_hZs6UBX9w_gLsdR5Uf"; 
-        const BUCKET_NAME = "my_files";
         const SECRET_PASSWORD = "Naiteek@2026"; 
-        
-        const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         function checkPassword() {
             const input = document.getElementById('pass-input').value;
             if(input === SECRET_PASSWORD) {
                 document.getElementById('login-wall').classList.add('hidden');
                 document.getElementById('dashboard').classList.remove('hidden');
-                fetchFiles();
             } else {
                 document.getElementById('login-err').classList.remove('hidden');
             }
@@ -97,96 +69,8 @@
             document.getElementById('dashboard').classList.add('hidden');
         }
 
-        async function fetchFiles() {
-            const fileList = document.getElementById('file-list');
-            const noFiles = document.getElementById('no-files');
-            fileList.innerHTML = '<p class="text-center text-gray-400 col-span-2">Loading files...</p>';
-
-            const { data, error } = await supabase.storage.from(BUCKET_NAME).list('', {
-                sortBy: { column: 'created_at', order: 'desc' }
-            });
-
-            if (error || !data || data.length === 0) {
-                fileList.innerHTML = '';
-                noFiles.classList.remove('hidden');
-                return;
-            }
-            noFiles.classList.add('hidden');
-            fileList.innerHTML = '';
-
-            data.forEach(file => {
-                const fileUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}/${file.name}`;
-                let icon = 'fa-file';
-                if(file.metadata && file.metadata.mimetype) {
-                    if(file.metadata.mimetype.startsWith('image/')) icon = 'fa-file-image text-green-400';
-                    else if(file.metadata.mimetype.startsWith('video/')) icon = 'fa-file-video text-purple-400';
-                    else if(file.metadata.mimetype.includes('pdf')) icon = 'fa-file-pdf text-red-400';
-                }
-
-                const card = document.createElement('div');
-                card.className = "flex items-center justify-between p-4 bg-[#161b22] border border-[#30363d] rounded-xl hover:border-gray-500 transition";
-                card.innerHTML = `
-                    <div class="flex items-center gap-3 min-w-0 flex-1">
-                        <i class="fa-solid ${icon} text-2xl"></i>
-                        <div class="truncate">
-                            <p class="text-sm font-semibold text-white truncate">${file.name}</p>
-                            <p class="text-xs text-gray-400">${(file.metadata ? (file.metadata.size/1024/1024).toFixed(2) : 0)} MB</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2 ml-4">
-                        <a href="${fileUrl}" target="_blank" class="p-2 text-gray-400 hover:text-green-400 transition" title="View"><i class="fa-solid fa-eye"></i></a>
-                        <a href="${fileUrl}" download="${file.name}" class="p-2 text-gray-400 hover:text-blue-400 transition" title="Download"><i class="fa-solid fa-download"></i></a>
-                        <button onclick="renameFile('${file.name}')" class="p-2 text-gray-400 hover:text-yellow-400 transition" title="Rename"><i class="fa-solid fa-pencil"></i></button>
-                        <button onclick="deleteFile('${file.name}')" class="p-2 text-gray-400 hover:text-red-500 transition" title="Delete"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                `;
-                fileList.appendChild(card);
-            });
-        }
-
-        async function uploadFiles() {
-            const input = document.getElementById('file-input');
-            if (input.files.length === 0) return;
-
-            const pContainer = document.getElementById('progress-container');
-            const pBar = document.getElementById('progress-bar');
-            const pText = document.getElementById('progress-text');
-
-            pContainer.classList.remove('hidden');
-
-            for(let i=0; i<input.files.length; i++) {
-                const file = input.files[i];
-                pText.innerText = `Uploading: ${file.name}`;
-                pBar.style.width = `50%`;
-
-                const { error } = await supabase.storage.from(BUCKET_NAME).upload(file.name, file, { cacheControl: '3600', upsert: true });
-                
-                if (error) alert("Upload fail ho gaya bhai: " + error.message);
-            }
-
-            pBar.style.width = `100%`;
-            setTimeout(() => {
-                pContainer.classList.add('hidden');
-                pBar.style.width = `0%`;
-                fetchFiles();
-            }, 1000);
-        }
-
-        async function deleteFile(name) {
-            if(confirm("Kya sach me ye file delete karni hai bhai?")) {
-                const { error } = await supabase.storage.from(BUCKET_NAME).remove([name]);
-                if(error) alert("Delete nahi ho payi: " + error.message);
-                else fetchFiles();
-            }
-        }
-
-        async function renameFile(oldName) {
-            const newName = prompt("Naya naam likho bhai (with extension jaise .jpg, .pdf):", oldName);
-            if(!newName || newName === oldName) return;
-
-            const { error } = await supabase.storage.from(BUCKET_NAME).move(oldName, newName);
-            if(error) alert("Rename fail: " + error.message);
-            else fetchFiles();
+        function uploadFiles() {
+            alert("Bhai dashboard toh chal gaya! Ab bas Supabase ki asli Anon Key lani padegi.");
         }
     </script>
 </body>
