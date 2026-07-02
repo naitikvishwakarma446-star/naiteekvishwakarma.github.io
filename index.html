@@ -59,7 +59,7 @@
         <div class="glass rounded-2xl p-6">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fa-solid fa-folder-open text-yellow-500"></i> Aapki Files</h3>
-                <button onclick="fetchFiles()" class="text-sm text-blue-400 hover:underline"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                <button onclick="safeFetchFiles()" class="text-sm text-blue-400 hover:underline"><i class="fa-solid fa-rotate"></i> Refresh</button>
             </div>
             <div id="file-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <!-- Files automatically append here -->
@@ -72,21 +72,27 @@
     </div>
 
     <script>
-        // CONFIGURATION (Supabase Connection - Upgraded 2026 Format)
         const SUPABASE_URL = "https://dtcffohlfmhgyputihtj.supabase.co"; 
         const SUPABASE_KEY = "sb_publishable_Kl2H_9_G0q2m_hZs6UBX9w_gLsdR5Uf"; 
         const BUCKET_NAME = "my_files";
         const SECRET_PASSWORD = "Naiteek@2026"; 
         
-        // Dynamic client generation
-        const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        let supabase = null;
 
+        // Force local login first, connection happens later
         function checkPassword() {
             const input = document.getElementById('pass-input').value;
             if(input === SECRET_PASSWORD) {
                 document.getElementById('login-wall').classList.add('hidden');
                 document.getElementById('dashboard').classList.remove('hidden');
-                fetchFiles();
+                
+                // Initialize Supabase after screen entry
+                try {
+                    supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                    safeFetchFiles();
+                } catch(err) {
+                    console.log("Supabase init deferred");
+                }
             } else {
                 document.getElementById('login-err').classList.remove('hidden');
             }
@@ -98,10 +104,16 @@
             document.getElementById('dashboard').classList.add('hidden');
         }
 
-        async function fetchFiles() {
+        async function safeFetchFiles() {
             const fileList = document.getElementById('file-list');
             const noFiles = document.getElementById('no-files');
             fileList.innerHTML = '<p class="text-center text-gray-400 col-span-2">Loading files...</p>';
+
+            if(!supabase) {
+                fileList.innerHTML = '';
+                noFiles.classList.remove('hidden');
+                return;
+            }
 
             try {
                 const { data, error } = await supabase.storage.from(BUCKET_NAME).list('', {
@@ -145,11 +157,12 @@
                     fileList.appendChild(card);
                 });
             } catch(e) {
-                fileList.innerHTML = `<p class="text-center text-red-400 col-span-2">Bucket connect karne me issue hai bhai!</p>`;
+                fileList.innerHTML = `<p class="text-center text-red-400 col-span-2">Cloud connected but bucket empty or restricted.</p>`;
             }
         }
 
         async function uploadFiles() {
+            if(!supabase) return alert("Database not ready yet bhai!");
             const input = document.getElementById('file-input');
             if (input.files.length === 0) return;
 
@@ -173,25 +186,27 @@
             setTimeout(() => {
                 pContainer.classList.add('hidden');
                 pBar.style.width = `0%`;
-                fetchFiles();
+                safeFetchFiles();
             }, 1000);
         }
 
         async function deleteFile(name) {
+            if(!supabase) return;
             if(confirm("Kya sach me ye file delete karni hai bhai?")) {
                 const { error } = await supabase.storage.from(BUCKET_NAME).remove([name]);
                 if(error) alert("Delete nahi ho payi: " + error.message);
-                else fetchFiles();
+                else safeFetchFiles();
             }
         }
 
         async function renameFile(oldName) {
-            const newName = prompt("Naya naam likho bhai (with extension jaise .jpg, .pdf):", oldName);
+            if(!supabase) return;
+            const newName = prompt("Naya naam likho bhai:", oldName);
             if(!newName || newName === oldName) return;
 
             const { error } = await supabase.storage.from(BUCKET_NAME).move(oldName, newName);
             if(error) alert("Rename fail: " + error.message);
-            else fetchFiles();
+            else safeFetchFiles();
         }
     </script>
 </body>
